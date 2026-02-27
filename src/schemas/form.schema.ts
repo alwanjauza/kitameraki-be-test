@@ -5,6 +5,7 @@ export const formFieldSchema = z.object({
   label: z.string().min(1),
   type: z.enum(["text", "date", "datetime", "email"]),
   required: z.boolean().optional(),
+  columns: z.number().optional(),
 });
 
 export const saveFormSettingsSchema = z.object({

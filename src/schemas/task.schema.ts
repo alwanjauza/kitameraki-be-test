@@ -1,26 +1,24 @@
 import { z } from "zod";
 
-export const createTaskSchema = z.object({
-  organizationId: z
-    .string({
-      required_error: "OrganizationId is required",
-    })
-    .min(1, "OrganizationId is required"),
+export const createTaskSchema = z
+  .object({
+    organizationId: z
+      .string({ required_error: "OrganizationId is required" })
+      .min(1, "OrganizationId is required"),
 
-  title: z
-    .string({
-      required_error: "Title is required",
-    })
-    .min(1, "Title is required"),
+    title: z
+      .string({ required_error: "Title is required" })
+      .min(1, "Title is required"),
 
-  description: z.string().optional(),
+    description: z.string().optional(),
 
-  status: z.enum(["todo", "in-progress", "done"], {
-    required_error: "Status is required",
-  }),
+    status: z.enum(["todo", "in-progress", "done"], {
+      required_error: "Status is required",
+    }),
 
-  dueDate: z.string().optional(),
-});
+    dueDate: z.string().optional(),
+  })
+  .passthrough();
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 
@@ -31,6 +29,7 @@ export const updateTaskSchema = z
     status: z.enum(["todo", "in-progress", "done"]).optional(),
     dueDate: z.string().datetime().optional(),
   })
+  .passthrough()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",
   });

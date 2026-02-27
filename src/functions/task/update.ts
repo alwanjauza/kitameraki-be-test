@@ -32,7 +32,7 @@ export async function updateTaskHandler(
 
     return success(updatedTask, 200);
   } catch (err: any) {
-    context.log("Error:", err);
+    context.log("Error UpdateTask:", err.message || "Unknown error occurred");
 
     if (err instanceof AppError) {
       return error(err.message, err.statusCode);

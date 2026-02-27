@@ -22,7 +22,10 @@ export const getTasks = async ({
 }: GetTasksParams) => {
   const offset = (page - 1) * pageSize;
 
-  const conditions: string[] = ["c.organizationId = @organizationId"];
+  const conditions: string[] = [
+    "c.organizationId = @organizationId",
+    "c.id != 'task-form-settings'",
+  ];
   const parameters: any[] = [
     { name: "@organizationId", value: organizationId },
   ];
@@ -108,16 +111,29 @@ export const updateTask = async (
   data: UpdateTaskInput,
 ) => {
   try {
-    const patchOperations: PatchOperation[] = Object.entries(data).map(
+    const restrictedKeys = ["id", "organizationId", "createdAt", "updatedAt"];
+
+    const validEntries = Object.entries(data).filter(
+      ([key, value]) =>
+        value !== undefined &&
+        !restrictedKeys.includes(key) &&
+        !key.startsWith("_"),
+    );
+
+    if (validEntries.length === 0) {
+      throw new AppError("No valid fields to update", 400);
+    }
+
+    const patchOperations: PatchOperation[] = validEntries.map(
       ([key, value]) => ({
-        op: "replace",
+        op: "set",
         path: `/${key}`,
         value,
       }),
     );
 
     patchOperations.push({
-      op: "replace",
+      op: "set",
       path: "/updatedAt",
       value: new Date().toISOString(),
     });
@@ -136,7 +152,7 @@ export const updateTask = async (
       throw new AppError("Task not found", 404);
     }
 
-    throw new AppError("Failed to fetch task", 500);
+    throw err;
   }
 };
 
