@@ -8,14 +8,16 @@ import { updateTask } from "../../services/taskService";
 import { updateTaskSchema } from "../../schemas/task.schema";
 import { success, error } from "../../utils/response";
 import { AppError } from "../../utils/AppError";
+import { withAuth } from "../../utils/auth";
 
 export async function updateTaskHandler(
   request: HttpRequest,
   context: InvocationContext,
+  user: any,
 ): Promise<HttpResponseInit> {
   try {
     const taskId = request.query.get("id");
-    const partitionKey = request.query.get("organizationId");
+    const partitionKey = user?.organizationId;
 
     if (!taskId || !partitionKey) {
       return error(
@@ -49,5 +51,5 @@ export async function updateTaskHandler(
 app.http("UpdateTask", {
   methods: ["PATCH"],
   authLevel: "anonymous",
-  handler: updateTaskHandler,
+  handler: withAuth(updateTaskHandler),
 });

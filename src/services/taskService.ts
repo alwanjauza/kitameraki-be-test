@@ -7,6 +7,7 @@ import { AppError } from "../utils/AppError";
 
 export interface GetTasksParams {
   organizationId: string;
+  userId: string;
   page?: number;
   pageSize?: number;
   status?: string;
@@ -19,15 +20,19 @@ export const getTasks = async ({
   pageSize = 10,
   status,
   search,
+  userId,
 }: GetTasksParams) => {
   const offset = (page - 1) * pageSize;
 
   const conditions: string[] = [
     "c.organizationId = @organizationId",
-    "c.id != 'task-form-settings'",
+    "c.type = 'task'",
+    "c.userId = @userId",
   ];
+
   const parameters: any[] = [
     { name: "@organizationId", value: organizationId },
+    { name: "@userId", value: userId },
   ];
 
   if (status) {
@@ -46,6 +51,7 @@ export const getTasks = async ({
     query: `
       SELECT * FROM c
       WHERE ${whereClause}
+      ORDER BY c.createdAt DESC
       OFFSET @offset LIMIT @limit
     `,
     parameters: [
@@ -62,8 +68,10 @@ export const getTasks = async ({
     parameters,
   };
 
-  const countResult = await container.items.query(countQuery).fetchAll();
-  const total = countResult.resources[0] ?? 0;
+  const { resources: countResources } = await container.items
+    .query(countQuery)
+    .fetchAll();
+  const total = countResources[0] ?? 0;
 
   return {
     data: sanitizeCosmosDocs(resources),
@@ -91,12 +99,14 @@ export const getTaskById = async (taskId: string, partitionKey: string) => {
   }
 };
 
-export const createTask = async (data: CreateTaskInput) => {
+export const createTask = async (data: CreateTaskInput, userId: string) => {
   const now = new Date().toISOString();
 
   const task = {
     id: uuidv4(),
     ...data,
+    userId,
+    type: "task",
     createdAt: now,
     updatedAt: now,
   };

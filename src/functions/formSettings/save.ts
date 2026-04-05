@@ -7,23 +7,25 @@ import {
 import { saveFormSettings } from "../../services/formSettingsService";
 import { saveFormSettingsSchema } from "../../schemas/form.schema";
 import { success, error } from "../../utils/response";
+import { withAuth } from "../../utils/auth";
 
 export async function saveFormSettingsHandler(
   request: HttpRequest,
   context: InvocationContext,
+  user: any,
 ): Promise<HttpResponseInit> {
   try {
     const body = await request.json();
 
     const validated = saveFormSettingsSchema.parse(body);
 
-    const organizationId = request.query.get("organizationId");
+    const organizationId = user?.organizationId;
 
     if (!organizationId) {
       return error("organizationId is required", 400);
     }
 
-    const result = await saveFormSettings(organizationId, validated);
+    const result = await saveFormSettings(organizationId, validated, user?.id);
 
     return success(result, 200);
   } catch (err: any) {
@@ -40,5 +42,5 @@ export async function saveFormSettingsHandler(
 app.http("SaveFormSettings", {
   methods: ["PUT", "POST"],
   authLevel: "anonymous",
-  handler: saveFormSettingsHandler,
+  handler: withAuth(saveFormSettingsHandler),
 });

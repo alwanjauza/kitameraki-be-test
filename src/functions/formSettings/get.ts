@@ -6,19 +6,21 @@ import {
 } from "@azure/functions";
 import { getFormSettings } from "../../services/formSettingsService";
 import { success, error } from "../../utils/response";
+import { withAuth } from "../../utils/auth";
 
 export async function getFormSettingsHandler(
   request: HttpRequest,
   context: InvocationContext,
+  user: any,
 ): Promise<HttpResponseInit> {
   try {
-    const organizationId = request.query.get("organizationId");
+    const organizationId = user?.organizationId;
 
     if (!organizationId) {
       return error("organizationId is required", 400);
     }
 
-    const settings = await getFormSettings(organizationId);
+    const settings = await getFormSettings(organizationId, user?.id);
 
     if (!settings) {
       return success({ fields: [] }, 200);
@@ -34,5 +36,5 @@ export async function getFormSettingsHandler(
 app.http("GetFormSettings", {
   methods: ["GET"],
   authLevel: "anonymous",
-  handler: getFormSettingsHandler,
+  handler: withAuth(getFormSettingsHandler),
 });

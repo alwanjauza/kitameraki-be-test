@@ -6,13 +6,15 @@ import {
 } from "@azure/functions";
 import { getTasks } from "../../services/taskService";
 import { success, error } from "../../utils/response";
+import { withAuth } from "../../utils/auth";
 
 export async function getTasksHandler(
   request: HttpRequest,
   context: InvocationContext,
+  user: any,
 ): Promise<HttpResponseInit> {
   try {
-    const organizationId = request.query.get("organizationId");
+    const organizationId = user?.organizationId;
 
     if (!organizationId) {
       return error("organizationId is required", 400);
@@ -29,6 +31,7 @@ export async function getTasksHandler(
       pageSize,
       status,
       search,
+      userId: user?.id,
     });
 
     return success(result, 200);
@@ -41,5 +44,5 @@ export async function getTasksHandler(
 app.http("GetTasks", {
   methods: ["GET"],
   authLevel: "anonymous",
-  handler: getTasksHandler,
+  handler: withAuth(getTasksHandler),
 });
