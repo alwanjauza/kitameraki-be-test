@@ -6,6 +6,10 @@ const client = new CosmosClient({
   key: env.COSMOS_KEY,
 });
 
-export const container = client
-  .database(env.COSMOS_DATABASE)
-  .container(env.COSMOS_CONTAINER);
+const database = client.database(env.COSMOS_DATABASE);
+
+export const usersContainer = database.container(env.COSMOS_CONTAINER_USERS);
+export const tasksContainer = database.container(env.COSMOS_CONTAINER_TASKS);
+export const settingsContainer = database.container(
+  env.COSMOS_CONTAINER_SETTINGS,
+);

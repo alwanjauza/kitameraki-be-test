@@ -1,4 +1,4 @@
-import { container } from "../database/cosmosClient";
+import { settingsContainer } from "../database/cosmosClient";
 import { SaveFormSettingsInput } from "../schemas/form.schema";
 import { sanitizeCosmosDoc } from "../utils/sanitize";
 import { AppError } from "../utils/AppError";
@@ -27,6 +27,7 @@ export const DEFAULT_FIELDS = [
     columns: 16,
   },
 ];
+
 export const getFormSettings = async (
   organizationId: string,
   userId: string | undefined,
@@ -34,7 +35,7 @@ export const getFormSettings = async (
   const settingsId = `task-form-setting-${userId}`;
 
   try {
-    const { resource } = await container
+    const { resource } = await settingsContainer
       .item(settingsId, organizationId)
       .read();
 
@@ -42,15 +43,24 @@ export const getFormSettings = async (
       return {
         id: settingsId,
         organizationId,
-        type: "form-settings",
+        userId,
         fields: DEFAULT_FIELDS,
       };
     }
 
-    return resource ? sanitizeCosmosDoc(resource) : null;
+    const sanitized = sanitizeCosmosDoc(resource);
+    const customFields = sanitized.fields || [];
+
+    return {
+      ...sanitized,
+      fields: [...DEFAULT_FIELDS, ...customFields],
+    };
   } catch (err: any) {
     if (err.code === 404 || err.statusCode === 404) {
       return {
+        id: settingsId,
+        organizationId,
+        userId,
         fields: DEFAULT_FIELDS,
       };
     }
@@ -66,15 +76,28 @@ export const saveFormSettings = async (
 ) => {
   const settingsId = `task-form-setting-${userId}`;
 
+  const defaultFieldIds = DEFAULT_FIELDS.map((f) => f.id);
+  const customFieldsOnly = data.fields.filter(
+    (f) => !defaultFieldIds.includes(f.id),
+  );
+
   const document = {
     id: settingsId,
     organizationId,
+    userId,
     type: "form-settings",
-    fields: data.fields,
+    fields: customFieldsOnly,
     updatedAt: new Date().toISOString(),
   };
 
-  const { resource } = await container.items.upsert(document);
+  const { resource } = await settingsContainer.items.upsert(document);
 
-  return resource ? sanitizeCosmosDoc(resource) : null;
+  if (!resource) return null;
+
+  const sanitized = sanitizeCosmosDoc(resource);
+
+  return {
+    ...sanitized,
+    fields: [...DEFAULT_FIELDS, ...sanitized.fields],
+  };
 };
