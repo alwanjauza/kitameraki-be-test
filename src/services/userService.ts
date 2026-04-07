@@ -6,15 +6,23 @@ export interface UserPayload {
   tid: string;
   name?: string;
   preferred_username?: string;
+  roles?: string[];
 }
 
 export const getOrCreateUser = async (payload: UserPayload) => {
+  const isAdmin = payload.roles?.includes("TenantAdmin");
+  const currentRole = isAdmin ? "admin" : "member";
+
   try {
     const { resource } = await usersContainer
       .item(payload.oid, payload.tid)
       .read();
 
     if (resource) {
+      if (resource.role !== currentRole) {
+        resource.role = currentRole;
+        await usersContainer.items.upsert(resource);
+      }
       return sanitizeCosmosDoc(resource);
     }
   } catch (error: any) {
@@ -28,6 +36,7 @@ export const getOrCreateUser = async (payload: UserPayload) => {
     organizationId: payload.tid,
     name: payload.name || "",
     email: payload.preferred_username || "",
+    roles: currentRole,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

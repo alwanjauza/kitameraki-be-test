@@ -21,8 +21,18 @@ export async function saveFormSettingsHandler(
 
     const organizationId = user?.organizationId;
 
-    if (!organizationId) {
-      return error("organizationId is required", 400);
+    if (!organizationId || !user?.id) {
+      return error("Unauthorized: Missing user context", 401);
+    }
+
+    if (user.role !== "admin") {
+      context.log(
+        `[RBAC BLOCK] User ${user.email} attempted to modify settings.`,
+      );
+      return error(
+        "Forbidden: Only Tenant Administrators can modify form settings.",
+        403,
+      );
     }
 
     const result = await saveFormSettings(organizationId, validated, user?.id);

@@ -63,6 +63,7 @@ export const withAuth = (handler: AuthenticatedHandler) => {
         tid: decoded.tid,
         name: decoded.name,
         preferred_username: decoded.preferred_username,
+        roles: decoded.roles || [],
       });
 
       return handler(request, context, user);
