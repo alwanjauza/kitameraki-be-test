@@ -20,7 +20,7 @@ export async function getFormSettingsHandler(
       return error("organizationId is required", 400);
     }
 
-    const settings = await getFormSettings(organizationId, user?.id);
+    const settings = await getFormSettings(organizationId);
 
     if (!settings) {
       return success({ fields: [] }, 200);

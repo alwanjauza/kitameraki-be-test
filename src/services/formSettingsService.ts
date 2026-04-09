@@ -2,6 +2,7 @@ import { settingsContainer } from "../database/cosmosClient";
 import { SaveFormSettingsInput } from "../schemas/form.schema";
 import { sanitizeCosmosDoc } from "../utils/sanitize";
 import { AppError } from "../utils/AppError";
+import { v4 as uuidv4 } from "uuid";
 
 export const DEFAULT_FIELDS = [
   {
@@ -28,22 +29,21 @@ export const DEFAULT_FIELDS = [
   },
 ];
 
-export const getFormSettings = async (
-  organizationId: string,
-  userId: string | undefined,
-) => {
-  const settingsId = `task-form-setting-${userId}`;
-
+export const getFormSettings = async (organizationId: string) => {
   try {
-    const { resource } = await settingsContainer
-      .item(settingsId, organizationId)
-      .read();
+    const querySpec = {
+      query: "SELECT * FROM c WHERE c.organizationId = @orgId",
+      parameters: [{ name: "@orgId", value: organizationId }],
+    };
+
+    const { resources } = await settingsContainer.items
+      .query(querySpec)
+      .fetchAll();
+    const resource = resources[0];
 
     if (!resource) {
       return {
-        id: settingsId,
         organizationId,
-        userId,
         fields: DEFAULT_FIELDS,
       };
     }
@@ -56,15 +56,6 @@ export const getFormSettings = async (
       fields: [...DEFAULT_FIELDS, ...customFields],
     };
   } catch (err: any) {
-    if (err.code === 404 || err.statusCode === 404) {
-      return {
-        id: settingsId,
-        organizationId,
-        userId,
-        fields: DEFAULT_FIELDS,
-      };
-    }
-
     throw new AppError("Failed to fetch form settings", 500);
   }
 };
@@ -74,7 +65,14 @@ export const saveFormSettings = async (
   data: SaveFormSettingsInput,
   userId: string,
 ) => {
-  const settingsId = `task-form-setting-${userId}`;
+  const querySpec = {
+    query: "SELECT * FROM c WHERE c.organizationId = @orgId",
+    parameters: [{ name: "@orgId", value: organizationId }],
+  };
+  const { resources } = await settingsContainer.items
+    .query(querySpec)
+    .fetchAll();
+  const existingDoc = resources[0];
 
   const defaultFieldIds = DEFAULT_FIELDS.map((f) => f.id);
   const customFieldsOnly = data.fields.filter(
@@ -82,11 +80,11 @@ export const saveFormSettings = async (
   );
 
   const document = {
-    id: settingsId,
+    id: existingDoc ? existingDoc.id : uuidv4(),
     organizationId,
-    userId,
     type: "form-settings",
     fields: customFieldsOnly,
+    lastUpdatedBy: userId,
     updatedAt: new Date().toISOString(),
   };
 
