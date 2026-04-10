@@ -36,7 +36,7 @@ export const getOrCreateUser = async (payload: UserPayload) => {
     organizationId: payload.tid,
     name: payload.name || "",
     email: payload.preferred_username || "",
-    roles: currentRole,
+    role: currentRole,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
